@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang=”en”>
+<head>
+<meta charset=”UTF-8″ />
+<meta name=”viewport” content=”width=device-width, initial-scale=1″ />
+<title>Global Numbers with Fake OTP</title>
+<style>
+/* Same colorful styles with 3D buttons, etc. */
+body {
+font-family: ‘Segoe UI’, Tahoma, Geneva, Verdana, sans-serif;
+background: linear-gradient(45deg, #ff9a9e, #fad0c4, #fad0c4, #ff9a9e);
+padding: 20px;
+margin: 0;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+h1 {
+color: #fff;
+text-shadow: 0 2px 4px #333;
+margin-bottom: 20px;
+}
+#numberGrid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+gap: 20px;
+width: 100%;
+max-width: 1200px;
+}
+.card {
+background: #fff;
+border-radius: 12px;
+box-shadow:
+0 4px 6px rgba(0,0,0,0.1),
+0 0 8px rgba(255, 105, 180, 0.5);
+padding: 15px;
+display: flex;
+flex-direction: column;
+align-items: center;
+user-select: none;
+transition: transform 0.3s ease;
+}
+.card:hover {
+transform: translateY(-5px);
+box-shadow:
+0 8px 12px rgba(0,0,0,0.2),
+0 0 10px rgba(255, 105, 180, 0.8);
+}
+.flag {
+font-size: 48px;
+}
+.country {
+font-weight: 700;
+margin: 8px 0;
+font-size: 18px;
+color: #333;
+text-align: center;
+}
+.number {
+font-family: monospace;
+font-size: 16px;
+color: #555;
+margin-bottom: 10px;
+text-align: center;
+}
+button {
+cursor: pointer;
+background: linear-gradient(145deg, #ff7eb9, #ff65a3);
+border: none;
+border-radius: 12px;
+box-shadow:
+0 4px 6px #d43f8d,
+inset 0 -3px 5px #a2346f;
+color: white;
+font-weight: bold;
+font-size: 14px;
+padding: 8px 14px;
+margin: 6px 0;
+width: 100%;
+transition: all 0.25s ease;
+text-shadow: 0 1px 1px #8b1451;
+user-select: none;
+}
+button:active {
+box-shadow:
+inset 0 4px 6px #d43f8d,
+0 -3px 5px #a2346f;
+transform: translateY(2px);
+}
+button:disabled {
+background: #ccc;
+cursor: not-allowed;
+box-shadow: none;
+color: #888;
+text-shadow: none;
+}
+.timer {
+font-size: 14px;
+color: #666;
+margin-bottom: 10px;
+}
+.inbox {
+background: #f5f5f5;
+border-radius: 8px;
+width: 100%;
+max-height: 110px;
+overflow-y: auto;
+padding: 6px 8px;
+font-size: 13px;
+color: #444;
+box-shadow: inset 0 0 5px #ddd;
+user-select: text;
+}
+.message {
+margin-bottom: 6px;
+white-space: pre-wrap;
+}
+</style>
+</head>
+<body>
+<h1>Here, you will find numbers from over 100 countries</h1>
+<div id=”numberGrid”></div>
+
+<script>
+// Full list of 100+ countries with numbers (sample subset here for brevity)
+const allCountries = [
+{ flag: “🇺🇸”, name: “United States”, number: “+1 209-987-1234” },
+{ flag: “🇬🇧”, name: “United Kingdom”, number: “+44 7911-123456” },
+{ flag: “🇮🇳”, name: “India”, number: “+91 98765-43210” },
+{ flag: “🇧🇩”, name: “Bangladesh”, number: “+880 1700-123456” },
+{ flag: “🇨🇦”, name: “Canada”, number: “+1 416-555-7890” },
+{ flag: “🇩🇪”, name: “Germany”, number: “+49 151-23456789” },
+{ flag: “🇧🇷”, name: “Brazil”, number: “+55 11 91234-5678” },
+{ flag: “🇫🇷”, name: “France”, number: “+33 6 12 34 56 78” },
+{ flag: “🇯🇵”, name: “Japan”, number: “+81 90-1234-5678” },
+{ flag: “🇷🇺”, name: “Russia”, number: “+7 926 123-4567″ },
+// Add more to reach 100+ countries…
+// For demonstration, we repeat above 10 times to simulate 100+ countries:
+];
+
+// For demonstration, let’s multiply the list to reach 100+ entries
+while (allCountries.length < 110) {
+allCountries.push(…allCountries.slice(0, 10).map(c => {
+return {…c, name: c.name + ” ” + (Math.floor(Math.random()*1000))};
+}));
+}
+
+const NUMBER_DISPLAY_COUNT = 50;
+let currentNumbers = [];
+let intervals = [];
+
+const messageTemplates = [
+“Your OTP is {otp}. Do not share it with anyone.”,
+“Use {otp} to verify your login.”,
+“Code: {otp}. It will expire in 10 mins.”,
+“Security Alert: {otp} is your code.”,
+“This is your access code: {otp}”
+];
+
+const container = document.getElementById(“numberGrid”);
+
+function getRandomSet(arr, count) {
+const shuffled = […arr].sort(() => 0.5 – Math.random());
+return shuffled.slice(0, count);
+}
+
+function renderNumbers() {
+clearIntervalsAndReset();
+container.innerHTML = “”;
+currentNumbers = getRandomSet(allCountries, NUMBER_DISPLAY_COUNT);
+
+currentNumbers.forEach(({ flag, name, number }, i) => {
+const card = document.createElement(“div”);
+card.className = “card”;
+const cardID = `card-${i}`;
+
+card.innerHTML = `
+<div class=”flag”>${flag}</div>
+<div class=”country”>${name}</div>
+<div class=”number”>${number}</div>
+<button onclick=”useNumber(this, ‘${cardID}’)”>Use Number</button>
+<button onclick=”refreshInbox(‘${cardID}’)”>🔄 Refresh Inbox</button>
+<div class=”timer”>⏱️ 10:00</div>
+<div class=”inbox” id=”${cardID}-inbox”></div>
+`;
+
+container.appendChild(card);
+});
+}
+
+function clearIntervalsAndReset() {
+intervals.forEach(i => clearInterval(i));
+intervals = [];
+}
+
+function useNumber(button, cardID) {
+const card = button.parentElement;
+const number = card.querySelector(‘.number’).textContent;
+navigator.clipboard.writeText(number);
+button.disabled = true;
+
+const timerDisplay = card.querySelector(‘.timer’);
+let time = 600; // 10 minutes
+
+// Clear any previous interval for this card
+// We’ll store intervals globally with their button’s dataset or id if needed, but for simplicity here, just add new
+const interval = setInterval(() => {
+const min = String(Math.floor(time / 60)).padStart(2, ‘0’);
+const sec = String(time % 60).padStart(2, ‘0’);
+timerDisplay.textContent = `⏱️ ${min}:${sec}`;
+time–;
+if (time < 0) {
+clearInterval(interval);
+timerDisplay.textContent = “⛔ Expired”;
+button.disabled = false;
+}
+}, 1000);
+intervals.push(interval);
+
+const inbox = document.getElementById(`${cardID}-inbox`);
+inbox.innerHTML = ”;
+
+// Show OTP after 60 seconds delay
+setTimeout(() => {
+addFakeMessage(inbox);
+}, 60000);
+}
+
+function addFakeMessage(inbox) {
+const otp = Math.floor(100000 + Math.random() * 900000);
+const template = messageTemplates[Math.floor(Math.random() * messageTemplates.length)];
+const msg = template.replace(“{otp}”, otp);
+
+const msgDiv = document.createElement(“div”);
+msgDiv.className = “message”;
+msgDiv.textContent = `📩 ${msg}`;
+inbox.appendChild(msgDiv);
+inbox.scrollTop = inbox.scrollHeight;
+}
+
+function refreshInbox(cardID) {
+const inbox = document.getElementById(`${cardID}-inbox`);
+inbox.innerHTML = ”;
+addFakeMessage(inbox);
+}
+
+// Initial render
+renderNumbers();
+
+// Update numbers every 10 minutes (600000 ms)
+setInterval(() => {
+renderNumbers();
+}, 600000);
+</script>
+</body>
+</html>
